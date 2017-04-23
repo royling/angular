@@ -3007,6 +3007,47 @@ describe('Integration', () => {
              expect(location.path()).toEqual('/lazy');
            })));
 
+    fit('works with aux route',
+        fakeAsync(inject(
+            [Router, Location, NgModuleFactoryLoader],
+            (router: Router, location: Location, loader: SpyNgModuleFactoryLoader) => {
+              @Component({
+                selector: 'lazy-root',
+                template: 'lazy-root'
+              })
+              class LazyRootCmp {}
+
+              @Component({selector: 'aux', template: 'aux-in-lazy'})
+              class AuxCmp {}
+
+              @NgModule({
+                declarations: [LazyRootCmp, AuxCmp],
+                imports: [
+                  RouterModule.forChild([{
+                    path: '',
+                    component: LazyRootCmp,
+                    // children: [{path: 'aux1', component: AuxCmp, outlet: 'aux'}]
+                  }, {
+                    path: '', component: AuxCmp, outlet: 'aux'
+                  }])
+                ]
+              })
+              class LazyModule {}
+
+              loader.stubbedModules = {expected: LazyModule};
+
+              const fixture = createRoot(router, TwoOutletsCmp);
+
+              router.resetConfig([{path: 'lazy', loadChildren: 'expected'}]);
+
+              router.navigateByUrl('/lazy');
+              // router.navigate(['/lazy', {outlets: {aux: 'aux1'}}]);
+              advance(fixture);
+
+              expect(location.path()).toEqual('/lazy');
+              expect(fixture.nativeElement).toHaveText('[ lazy-root, aux: aux-in-lazy ]');
+            })));
+
     describe('preloading', () => {
       beforeEach(() => {
         TestBed.configureTestingModule(
